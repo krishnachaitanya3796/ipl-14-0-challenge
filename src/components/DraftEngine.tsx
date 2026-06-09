@@ -45,16 +45,22 @@ function getSlotRangeLabel(role: PlayerRole) {
 function pickRandomSquadKey(
   draftedIds: Set<string>,
   currentSquadKey?: string | null,
+  visited?: Set<string>,
 ) {
   const availableSquads = squadGroups.filter(
     (squad) =>
-      squad.key !== currentSquadKey &&
-      squad.players.some((player) => !draftedIds.has(player.id)),
+      !visited?.has(squad.key) &&
+      squad.players.some((player) => !draftedIds.has(player.id))
   );
-  const fallbackSquads = squadGroups.filter((squad) =>
-    squad.players.some((player) => !draftedIds.has(player.id)),
-  );
-  const choices = availableSquads.length > 0 ? availableSquads : fallbackSquads;
+
+  const choices =
+    availableSquads.length > 0
+      ? availableSquads
+      : squadGroups.filter(
+          (squad) =>
+            squad.key !== currentSquadKey &&
+            squad.players.some((player) => !draftedIds.has(player.id))
+        );
 
   if (choices.length === 0) {
     return null;
@@ -197,6 +203,8 @@ const [currentSquadKey, setCurrentSquadKey] = useState<string | null>(null);
 const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 const [skipRemaining, setSkipRemaining] = useState(1);
+const [visitedSquads, setVisitedSquads] =
+  useState<Set<string>>(new Set());
 
 const [pendingPlayer, setPendingPlayer] =
   useState<PlayerSeason | null>(null);
@@ -223,12 +231,10 @@ const [slots, setSlots] = useState<Array<PlayerSeason | null>>(
     () => squadGroups.find((squad) => squad.key === currentSquadKey) ?? null,
     [currentSquadKey],
   );
-  const currentSquadPlayers = useMemo(
-    () =>
-      currentSquad?.players.filter((player) => !draftedIds.has(player.id)) ??
-      [],
-    [currentSquad, draftedIds],
-  );
+const currentSquadPlayers = useMemo(
+  () => currentSquad?.players ?? [],
+  [currentSquad],
+);
   const invalidSlots = useMemo(
     () =>
       slots
@@ -303,6 +309,40 @@ function draftPlayer(player: any) {
 
   setPendingPlayer(player);
 }
+function selectPosition(position: number) {
+  if (!pendingPlayer) return;
+  if (slots[position] !== null) {
+    return;
+  }
+
+  const nextSlots = [...slots];
+  nextSlots[position] = pendingPlayer;
+
+  setSlots(nextSlots);
+
+  const nextDraftedIds = new Set(draftedIds);
+  nextDraftedIds.add(pendingPlayer.id);
+  const nextVisited = new Set<string>(visitedSquads);
+
+if (currentSquadKey) {
+  nextVisited.add(currentSquadKey);
+}
+
+setVisitedSquads(nextVisited);
+
+setCurrentSquadKey(
+  nextDraftedIds.size >= TOTAL_PICKS
+    ? null
+    : pickRandomSquadKey(
+        nextDraftedIds,
+        currentSquadKey,
+        nextVisited
+      )
+);
+
+  setPendingPlayer(null);
+  setPendingPosition(null);
+}
 
   function skipSquad() {
     if (skipRemaining === 0 || draftComplete) {
@@ -310,16 +350,36 @@ function draftPlayer(player: any) {
     }
 
     setSkipRemaining(0);
-    setCurrentSquadKey(pickRandomSquadKey(draftedIds, currentSquadKey));
+    const nextVisited = new Set<string>(visitedSquads);
+
+if (currentSquadKey) {
+  nextVisited.add(currentSquadKey);
+}
+
+setVisitedSquads(nextVisited);
+
+setCurrentSquadKey(
+  pickRandomSquadKey(
+    draftedIds,
+    currentSquadKey,
+    nextVisited
+  )
+);
   }
 
   function resetDraft() {
-    window.localStorage.removeItem(STORAGE_KEY);
-    setCurrentSquadKey(pickRandomSquadKey(new Set()));
-    setDraggedIndex(null);
-    setSkipRemaining(1);
-    setSlots(createEmptySlots());
-  }
+  window.localStorage.removeItem(STORAGE_KEY);
+
+  setVisitedSquads(new Set());
+
+  setCurrentSquadKey(
+    pickRandomSquadKey(new Set<string>())
+  );
+
+  setDraggedIndex(null);
+  setSkipRemaining(1);
+  setSlots(createEmptySlots());
+}
 
   function reorderSlots(fromIndex: number, toIndex: number) {
     setSlots((currentSlots) => moveSlot(currentSlots, fromIndex, toIndex));
@@ -425,13 +485,21 @@ function draftPlayer(player: any) {
                   Squad Players
                 </p>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {currentSquadPlayers.map((player) => (
-                    <button
-                      key={player.id}
-                      type="button"
-                      onClick={() => draftPlayer(player)}
-                      className="group rounded-lg border border-white/10 bg-[#0b1710] p-4 text-left transition hover:border-emerald-300/50 hover:bg-[#102216]"
-                    >
+    {currentSquadPlayers.map((player) => {
+  const alreadyDrafted = draftedIds.has(player.id);
+
+  return (
+<button
+  key={player.id}
+  type="button"
+  disabled={alreadyDrafted}
+  onClick={() => draftPlayer(player)}
+ className={`group rounded-lg border border-white/10 bg-[#0b1710] p-4 text-left transition hover:border-emerald-300/50 hover:bg-[#102216] ${
+  alreadyDrafted
+    ? "opacity-40 cursor-not-allowed"
+    : ""
+}`}
+    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-lg font-black text-stone-50">
@@ -467,10 +535,12 @@ function draftPlayer(player: any) {
                         />
                       </div>
                       <p className="mt-4 text-sm font-bold text-emerald-200 opacity-80 transition group-hover:opacity-100">
-                        Draft this player
+                      {alreadyDrafted ? "Already Drafted" : "Draft this player"}
                       </p>
                     </button>
-                  ))}
+                    );
+})
+                }
                 </div>
               </div>
             )}
@@ -704,6 +774,50 @@ function draftPlayer(player: any) {
           </section>
         </aside>
       </section>
+      {pendingPlayer && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div className="w-full max-w-lg rounded-xl bg-zinc-900 p-6">
+      <h2 className="text-xl font-bold text-white">
+        Select Position for {pendingPlayer.playerName}
+      </h2>
+
+      <div className="mt-4 grid grid-cols-4 gap-2">
+{Array.from({ length: 11 }).map((_, i) => {
+  const occupied = slots[i] !== null;
+
+  return (
+    <button
+      key={i}
+      disabled={occupied}
+      onClick={() => selectPosition(i)}
+      className={`rounded p-3 text-white ${
+        occupied
+          ? "bg-gray-700 cursor-not-allowed opacity-50"
+          : "border border-emerald-500 hover:bg-emerald-700"
+      }`}
+    >
+      {occupied ? `✓ ${i + 1}` : i + 1}
+    </button>
+  );
+})}
+
+        <button
+          onClick={() => selectPosition(11)}
+          className="col-span-4 rounded border border-yellow-500 p-3 text-white hover:bg-yellow-700"
+        >
+          Impact Player
+        </button>
+      </div>
+
+      <button
+        onClick={() => setPendingPlayer(null)}
+        className="mt-4 w-full rounded bg-red-600 p-3 text-white"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
     </main>
   );
 }
