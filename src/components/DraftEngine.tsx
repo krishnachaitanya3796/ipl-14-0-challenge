@@ -203,6 +203,9 @@ const [pendingPlayer, setPendingPlayer] =
 
 const [spinLocked, setSpinLocked] =
   useState(false);
+  
+  const [pendingPosition, setPendingPosition] =
+  useState<number | null>(null);
 
 const [slots, setSlots] = useState<Array<PlayerSeason | null>>(
   createEmptySlots,
@@ -293,21 +296,13 @@ const [slots, setSlots] = useState<Array<PlayerSeason | null>>(
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storedDraft));
   }, [currentSquadKey, hasLoadedDraft, skipRemaining, slots]);
 
-  function draftPlayer(player: any) {
-    if (draftComplete || draftedIds.has(player.id)) {
-      return;
-    }
-
-    const nextDraftedIds = new Set(draftedIds);
-    nextDraftedIds.add(player.id);
-
-    setSlots((currentSlots) => placePlayerInDraft(currentSlots, player));
-    setCurrentSquadKey(
-      nextDraftedIds.size >= TOTAL_PICKS
-        ? null
-        : pickRandomSquadKey(nextDraftedIds, currentSquadKey),
-    );
+function draftPlayer(player: any) {
+  if (draftComplete || draftedIds.has(player.id)) {
+    return;
   }
+
+  setPendingPlayer(player);
+}
 
   function skipSquad() {
     if (skipRemaining === 0 || draftComplete) {
