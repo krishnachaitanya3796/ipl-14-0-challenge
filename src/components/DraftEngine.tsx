@@ -25,15 +25,11 @@ function createEmptySlots() {
   return Array<PlayerSeason | null>(TOTAL_PICKS).fill(null);
 }
 
-function isPlayerValidForSlot(player: PlayerSeason, slotIndex: number) {
-  if (slotIndex === IMPACT_INDEX) {
-    return true;
-  }
-
-  const battingPosition = slotIndex + 1;
-  const rule = roleSlotRules[player.role];
-
-  return battingPosition >= rule.start && battingPosition <= rule.end;
+function isPlayerValidForSlot(
+  player: any,
+  slotIndex: number,
+) {
+  return true;
 }
 
 function getSlotLabel(slotIndex: number) {
@@ -197,13 +193,20 @@ function PlayerStat({ label, value }: { label: string; value: string }) {
 }
 
 export function DraftEngine() {
-  const [currentSquadKey, setCurrentSquadKey] = useState<string | null>(null);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
-  const [skipRemaining, setSkipRemaining] = useState(1);
-  const [slots, setSlots] = useState<Array<PlayerSeason | null>>(
-    createEmptySlots,
-  );
+const [currentSquadKey, setCurrentSquadKey] = useState<string | null>(null);
+const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
+const [skipRemaining, setSkipRemaining] = useState(1);
+
+const [pendingPlayer, setPendingPlayer] =
+  useState<PlayerSeason | null>(null);
+
+const [spinLocked, setSpinLocked] =
+  useState(false);
+
+const [slots, setSlots] = useState<Array<PlayerSeason | null>>(
+  createEmptySlots,
+);
 
   const draftedPlayers = useMemo(
     () => slots.filter((player): player is PlayerSeason => player !== null),
@@ -290,7 +293,7 @@ export function DraftEngine() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(storedDraft));
   }, [currentSquadKey, hasLoadedDraft, skipRemaining, slots]);
 
-  function draftPlayer(player: PlayerSeason) {
+  function draftPlayer(player: any) {
     if (draftComplete || draftedIds.has(player.id)) {
       return;
     }
@@ -443,13 +446,11 @@ export function DraftEngine() {
                             Season {player.season}
                           </p>
                         </div>
-                        <span
-                          className={`rounded border px-2.5 py-1 text-xs font-bold ${roleBadgeClass(
-                            player.role,
-                          )}`}
-                        >
-                          {roleLabels[player.role]}
-                        </span>
+ <span
+  className="rounded border px-2.5 py-1 text-xs font-bold border-emerald-500/30 text-emerald-200"
+>
+ Season {player.season}
+</span>
                       </div>
                       <div className="mt-5 grid grid-cols-4 gap-3">
                         <PlayerStat label="Runs" value={`${player.runs}`} />
@@ -509,7 +510,7 @@ export function DraftEngine() {
                           player.role,
                         )}`}
                       >
-                        {roleLabels[player.role]}
+                      Season {player.season}
                       </span>
                     </div>
                   </div>
@@ -640,20 +641,16 @@ export function DraftEngine() {
                                 player.role,
                               )}`}
                             >
-                              {roleLabels[player.role]}
+                           Season {player.season}
                             </span>
                             <span
-                              className={`rounded border px-2.5 py-1 text-xs font-bold ${
-                                isValid
-                                  ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100"
-                                  : "border-rose-300/40 bg-rose-300/10 text-rose-100"
-                              }`}
-                            >
-                              {isImpactSlot
-                                ? "Any role"
-                                : isValid
-                                  ? getSlotRangeLabel(player.role)
-                                  : `Needs ${roleSlotRules[player.role].label}`}
+                             className={`rounded border px-2.5 py-1 text-xs font-bold ${
+    isValid
+      ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-100"
+      : "border-rose-300/40 bg-rose-300/10 text-rose-100"
+  }`}
+>
+  {isImpactSlot ? "Impact Player" : `Season ${player.season}`}
                             </span>
                           </div>
                         ) : null}

@@ -8,6 +8,7 @@ export type PlayerRole =
 export type PlayerSeason = {
   id: string;
   playerName: string;
+  team: string;
   season: number;
   role: PlayerRole;
   runs: number;
@@ -31424,12 +31425,4 @@ export const roleSlotRules: Record<
     label: "7-11",
   },
 };
-
-export const squadGroups = [
-  {
-    key: "all-players",
-    team: "IPL Legends",
-    season: 2026,
-    players: playerSeasons,
-  },
-];
+export { squadGroups } from "./teamSeasons";
