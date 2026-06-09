@@ -159,3 +159,64 @@ players.slice(0, 25).forEach((p) => {
     `${p.playerName} (${p.season}) | Runs:${p.runs} | Wkts:${p.wickets}`
   );
 });
+function determineRole(player) {
+  if (player.wickets >= 15) {
+    return "BOWLER";
+  }
+
+  if (player.runs >= 500) {
+    return "TOP_ORDER";
+  }
+
+  if (player.runs >= 250) {
+    return "MIDDLE_ORDER";
+  }
+
+  return "FINISHER";
+}
+
+const output = `
+export type PlayerRole =
+  | "TOP_ORDER"
+  | "MIDDLE_ORDER"
+  | "FINISHER"
+  | "BOWLER";
+
+export type PlayerSeason = {
+  id: string;
+  playerName: string;
+  season: number;
+  role: PlayerRole;
+  runs: number;
+  strikeRate: number;
+  wickets: number;
+  economy: number;
+};
+
+export const playerSeasons: PlayerSeason[] = ${JSON.stringify(
+  players.map((p) => ({
+    id: `${p.playerName}-${p.season}`
+      .replace(/[^a-zA-Z0-9]/g, "-"),
+    playerName: p.playerName,
+    season: p.season,
+    role: determineRole(p),
+    runs: p.runs,
+    strikeRate: p.strikeRate || 0,
+    wickets: p.wickets,
+    economy: p.economy,
+  })),
+  null,
+  2
+)};
+`;
+
+fs.writeFileSync(
+  path.join(
+    process.cwd(),
+    "src/data/playerSeasonsReal.ts"
+  ),
+  output
+);
+
+console.log("");
+console.log("Generated src/data/playerSeasonsReal.ts");

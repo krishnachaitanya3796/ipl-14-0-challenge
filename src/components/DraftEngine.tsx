@@ -440,7 +440,7 @@ export function DraftEngine() {
                             {player.playerName}
                           </p>
                           <p className="mt-1 text-sm text-stone-400">
-                            {player.team} {player.season}
+                            Season {player.season}
                           </p>
                         </div>
                         <span
@@ -501,7 +501,7 @@ export function DraftEngine() {
                           {player.playerName}
                         </p>
                         <p className="mt-1 text-xs uppercase tracking-[0.16em] text-stone-500">
-                          {player.team} {player.season}
+                          Season {player.season}
                         </p>
                       </div>
                       <span
@@ -599,7 +599,7 @@ export function DraftEngine() {
                                   {player.playerName}
                                 </p>
                                 <p className="mt-1 text-sm text-stone-400">
-                                  {player.team} {player.season}
+                                  Season {player.season}
                                 </p>
                               </>
                             ) : (
