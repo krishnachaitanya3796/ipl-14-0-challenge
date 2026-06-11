@@ -252,6 +252,27 @@ const currentSquadPlayers = useMemo(
   const remainingPicks = TOTAL_PICKS - draftedPlayers.length;
   const draftComplete = remainingPicks === 0;
   const lineupValid = draftComplete && invalidSlots.length === 0;
+  const selectedPlayers = slots.filter(
+  (player): player is PlayerSeason => player !== null
+);
+
+const totalRuns = selectedPlayers.reduce(
+  (sum, player) => sum + player.runs,
+  0
+);
+
+const totalWickets = selectedPlayers.reduce(
+  (sum, player) => sum + player.wickets,
+  0
+);
+
+const battingStrength = Math.round(totalRuns / 100);
+
+const bowlingStrength = Math.round(totalWickets * 2);
+
+const teamRating = Math.round(
+  (battingStrength + bowlingStrength) / 2
+);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -802,9 +823,16 @@ setCurrentSquadKey(
 })}
 
         <button
-          onClick={() => selectPosition(11)}
+  disabled={slots[11] !== null}
+  onClick={() => selectPosition(11)}
+  className={`col-span-4 rounded p-3 text-white ${
+    slots[11] !== null
+      ? "bg-gray-700 cursor-not-allowed opacity-50"
+      : "border border-yellow-500 hover:bg-yellow-700"
+  }`}
+>
           className="col-span-4 rounded border border-yellow-500 p-3 text-white hover:bg-yellow-700"
-        >
+      
           Impact Player
         </button>
       </div>
